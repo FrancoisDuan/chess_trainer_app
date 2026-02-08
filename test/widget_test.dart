@@ -11,20 +11,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_trainer_app/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Chess Trainer app starts with search screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ChessTrainerApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the search screen is displayed.
+    expect(find.text('Chess Trainer'), findsOneWidget);
+    expect(find.text('Analyze Your Chess Games'), findsOneWidget);
+    expect(find.text('Chess.com Username'), findsOneWidget);
+    expect(find.text('Analyze'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('Search screen shows error for empty username', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(const ChessTrainerApp());
+
+    // Tap the Analyze button without entering username.
+    await tester.tap(find.text('Analyze'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that an error message is shown.
+    expect(find.text('Please enter a username'), findsOneWidget);
   });
 }
