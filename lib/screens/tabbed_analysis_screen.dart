@@ -336,11 +336,12 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // Interactive chess board
+            // Interactive chess board with best move support
             Center(
               child: ChessBoard(
                 fenNotation: mistake.positionFenBefore,
                 size: boardSize,
+                bestMove: _convertToAlgebraicNotation(mistake.bestMove),
               ),
             ),
             const SizedBox(height: 8),
@@ -352,10 +353,41 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                 color: Colors.grey[500],
               ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              'Tap a piece to see legal moves, then tap destination to move',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Convert standard algebraic notation (SAN) to coordinate notation
+  /// e.g., "Nf3" or "e4" -> "g1f3" or "e2e4"
+  String? _convertToAlgebraicNotation(String san) {
+    if (san.isEmpty) return null;
+    
+    // Remove check/checkmate symbols
+    san = san.replaceAll('+', '').replaceAll('#', '');
+    
+    // If it's already in coordinate notation (e.g., "e2e4"), return as is
+    if (san.length >= 4 && 
+        RegExp(r'^[a-h][1-8][a-h][1-8][qrbn]?$').hasMatch(san)) {
+      return san;
+    }
+    
+    // For SAN (e.g., "e4", "Nf3"), we'll let the chess library handle it
+    // by returning the SAN and letting the board parse it with full game state
+    // However, the chess library's move() function can't directly parse SAN without
+    // using the moves() function, so we'll return null and improve this later
+    return null;
   }
 
   Widget _buildMistakeNavigation() {

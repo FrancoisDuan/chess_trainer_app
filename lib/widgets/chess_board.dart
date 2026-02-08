@@ -1,47 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:chess/chess.dart' as chess_lib;
+import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 
-/// Represents a chess piece
-class ChessPiece {
-  final String type; // K, Q, R, B, N, P (uppercase for white, lowercase for black)
-  final bool isWhite;
-  final int row;
-  final int col;
 
-  ChessPiece({
-    required this.type,
-    required this.isWhite,
-    required this.row,
-    required this.col,
-  });
-
-  /// Get Unicode symbol for the piece
-  String get symbol {
-    final pieceSymbols = {
-      'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
-      'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
-    };
-    return pieceSymbols[type] ?? '';
-  }
-
-  ChessPiece copyWith({int? row, int? col}) {
-    return ChessPiece(
-      type: type,
-      isWhite: isWhite,
-      row: row ?? this.row,
-      col: col ?? this.col,
-    );
-  }
-}
-
-/// Interactive chess board widget
+/// Interactive chess board widget with professional piece graphics
 class ChessBoard extends StatefulWidget {
   final String? fenNotation;
   final double size;
+  final String? bestMove; // Best move in algebraic notation (e.g., "e2e4")
 
   const ChessBoard({
     super.key,
     this.fenNotation,
     this.size = 320,
+    this.bestMove,
   });
 
   @override
@@ -49,21 +21,23 @@ class ChessBoard extends StatefulWidget {
 }
 
 class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateMixin {
-  List<ChessPiece> pieces = [];
-  ChessPiece? selectedPiece;
+  late chess_lib.Chess _chess;
+  String? _selectedSquare;
+  List<String> _validMoves = [];
   late AnimationController _animationController;
   Animation<Offset>? _moveAnimation;
-  ChessPiece? _animatingPiece;
-  Set<String> validMoves = {}; // Store valid move positions as "row,col"
+  String? _animatingFromSquare;
+  String? _animatingToSquare;
+  bool _isPlayingBestMove = false;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _parseFEN(widget.fenNotation);
+    _initializeBoard();
   }
 
   @override
@@ -71,9 +45,9 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     super.didUpdateWidget(oldWidget);
     if (oldWidget.fenNotation != widget.fenNotation) {
       setState(() {
-        selectedPiece = null;
-        validMoves.clear();
-        _parseFEN(widget.fenNotation);
+        _selectedSquare = null;
+        _validMoves.clear();
+        _initializeBoard();
       });
     }
   }
@@ -84,120 +58,266 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  /// Parse FEN notation to extract piece positions
-  void _parseFEN(String? fen) {
-    pieces.clear();
-    if (fen == null || fen.isEmpty) return;
-
-    // FEN format: board position / active color / castling / en passant / halfmove / fullmove
-    // We only need the board position (first part)
-    final parts = fen.split(' ');
-    if (parts.isEmpty) return;
-
-    final rows = parts[0].split('/');
-    for (int rowIndex = 0; rowIndex < rows.length && rowIndex < 8; rowIndex++) {
-      int colIndex = 0;
-      for (final char in rows[rowIndex].split('')) {
-        if (RegExp(r'[1-8]').hasMatch(char)) {
-          // Empty squares
-          colIndex += int.parse(char);
-        } else if (RegExp(r'[pnbrqkPNBRQK]').hasMatch(char)) {
-          // Piece
-          final isWhite = char == char.toUpperCase();
-          pieces.add(ChessPiece(
-            type: char,
-            isWhite: isWhite,
-            row: rowIndex,
-            col: colIndex,
-          ));
-          colIndex++;
-        }
+  /// Initialize the chess board from FEN
+  void _initializeBoard() {
+    _chess = chess_lib.Chess();
+    if (widget.fenNotation != null && widget.fenNotation!.isNotEmpty) {
+      try {
+        _chess.load(widget.fenNotation!);
+      } catch (e) {
+        // If FEN is invalid, use default position
+        _chess.reset();
       }
     }
   }
 
-  /// Handle piece selection or movement
+  /// Convert row/col to algebraic notation (e.g., 0,0 -> "a8")
+  String _positionToAlgebraic(int row, int col) {
+    final files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    final rank = (8 - row).toString();
+    return '${files[col]}$rank';
+  }
+
+  /// Convert algebraic notation to row/col
+  Map<String, int> _algebraicToPosition(String algebraic) {
+    final files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    final col = files.indexOf(algebraic[0]);
+    final row = 8 - int.parse(algebraic[1]);
+    return {'row': row, 'col': col};
+  }
+
+  /// Handle square tap
   void _onSquareTap(int row, int col) {
-    if (selectedPiece != null) {
-      // Move selected piece to new position
-      _movePiece(selectedPiece!, row, col);
+    if (_isPlayingBestMove || _animatingFromSquare != null) {
+      return; // Don't allow interaction during animation
+    }
+
+    final square = _positionToAlgebraic(row, col);
+    
+    if (_selectedSquare != null) {
+      // Try to make a move
+      if (_validMoves.contains(square)) {
+        _makeMove(_selectedSquare!, square);
+      } else {
+        // Select different piece or deselect
+        _selectSquare(square);
+      }
     } else {
-      // Select piece at this position
-      final piece = _getPieceAt(row, col);
-      if (piece != null) {
+      // Select a piece
+      _selectSquare(square);
+    }
+  }
+
+  /// Select a square and calculate valid moves
+  void _selectSquare(String square) {
+    final piece = _chess.get(square);
+    
+    if (piece == null) {
+      setState(() {
+        _selectedSquare = null;
+        _validMoves.clear();
+      });
+      return;
+    }
+
+    // Only allow selecting pieces of the side to move
+    if ((piece.color == chess_lib.Color.WHITE && _chess.turn == chess_lib.Color.WHITE) ||
+        (piece.color == chess_lib.Color.BLACK && _chess.turn == chess_lib.Color.BLACK)) {
+      setState(() {
+        _selectedSquare = square;
+        _validMoves = _chess
+            .moves({'square': square})
+            .map((move) => _extractDestination(move))
+            .toList();
+      });
+    } else {
+      setState(() {
+        _selectedSquare = null;
+        _validMoves.clear();
+      });
+    }
+  }
+
+  /// Extract destination square from move string (handles various formats)
+  String _extractDestination(String move) {
+    // Remove check/checkmate symbols
+    move = move.replaceAll('+', '').replaceAll('#', '');
+    
+    // Handle castling
+    if (move == 'O-O') {
+      return _chess.turn == chess_lib.Color.WHITE ? 'g1' : 'g8';
+    }
+    if (move == 'O-O-O') {
+      return _chess.turn == chess_lib.Color.WHITE ? 'c1' : 'c8';
+    }
+    
+    // Extract the last 2 characters (destination square)
+    if (move.length >= 2) {
+      return move.substring(move.length - 2);
+    }
+    
+    return move;
+  }
+
+  /// Make a move and animate it
+  void _makeMove(String from, String to) async {
+    // Try to make the move
+    final move = _chess.move({'from': from, 'to': to, 'promotion': 'q'});
+    
+    if (move == null) {
+      // Invalid move
+      setState(() {
+        _selectedSquare = null;
+        _validMoves.clear();
+      });
+      return;
+    }
+
+    // Animate the move
+    await _animateMove(from, to);
+
+    setState(() {
+      _selectedSquare = null;
+      _validMoves.clear();
+    });
+
+    // After user's move, play the best move if available
+    if (widget.bestMove != null && widget.bestMove!.isNotEmpty) {
+      await Future.delayed(const Duration(milliseconds: 1500));
+      _playBestMove();
+    }
+  }
+
+  /// Animate a move
+  Future<void> _animateMove(String from, String to) async {
+    final fromPos = _algebraicToPosition(from);
+    final toPos = _algebraicToPosition(to);
+    
+    final squareSize = widget.size / 8;
+    final fromOffset = Offset(fromPos['col']! * squareSize, fromPos['row']! * squareSize);
+    final toOffset = Offset(toPos['col']! * squareSize, toPos['row']! * squareSize);
+
+    setState(() {
+      _animatingFromSquare = from;
+      _animatingToSquare = to;
+      _moveAnimation = Tween<Offset>(
+        begin: fromOffset,
+        end: toOffset,
+      ).animate(CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ));
+    });
+
+    await _animationController.forward(from: 0);
+
+    if (mounted) {
+      setState(() {
+        _animatingFromSquare = null;
+        _animatingToSquare = null;
+      });
+    }
+  }
+
+  /// Play the best move automatically
+  void _playBestMove() async {
+    if (_isPlayingBestMove || widget.bestMove == null || widget.bestMove!.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isPlayingBestMove = true;
+    });
+
+    try {
+      final bestMoveStr = widget.bestMove!;
+      
+      // Try to find the move in legal moves that matches the SAN or coordinate notation
+      chess_lib.Move? matchedMove;
+      String? fromSquare;
+      String? toSquare;
+      
+      // First, try coordinate notation (e.g., "e2e4")
+      if (bestMoveStr.length >= 4 && 
+          RegExp(r'^[a-h][1-8][a-h][1-8][qrbn]?$').hasMatch(bestMoveStr)) {
+        final from = bestMoveStr.substring(0, 2);
+        final to = bestMoveStr.substring(2, 4);
+        final promotion = bestMoveStr.length > 4 ? bestMoveStr[4] : null;
+        
+        final moveResult = _chess.move({
+          'from': from,
+          'to': to,
+          if (promotion != null) 'promotion': promotion,
+        });
+        
+        if (moveResult != null && moveResult is bool && moveResult == true) {
+          fromSquare = from;
+          toSquare = to;
+          matchedMove = _chess.undo_move(); // Undo to get the Move object
+          if (matchedMove != null) {
+            _chess.make_move(matchedMove); // Re-apply
+          }
+        }
+      }
+      
+      // If that didn't work, try SAN notation by checking all legal moves
+      if (matchedMove == null) {
+        final legalMoves = _chess.generate_moves();
+        for (final legalMove in legalMoves) {
+          final san = _chess.move_to_san(legalMove);
+          // Remove check/checkmate symbols for comparison
+          final cleanSan = san.replaceAll('+', '').replaceAll('#', '');
+          final cleanBestMove = bestMoveStr.replaceAll('+', '').replaceAll('#', '');
+          
+          if (san == bestMoveStr || cleanSan == cleanBestMove) {
+            matchedMove = legalMove;
+            fromSquare = legalMove.fromAlgebraic;
+            toSquare = legalMove.toAlgebraic;
+            _chess.make_move(legalMove);
+            break;
+          }
+        }
+      }
+
+      if (matchedMove != null && fromSquare != null && toSquare != null) {
+        // Animate the best move
+        await _animateMove(fromSquare, toSquare);
+      }
+    } catch (e) {
+      // Ignore errors in best move parsing
+      print('Error playing best move: $e');
+    } finally {
+      if (mounted) {
         setState(() {
-          selectedPiece = piece;
-          _calculateValidMoves(piece);
+          _isPlayingBestMove = false;
         });
       }
     }
   }
 
-  /// Calculate valid moves for a piece (simplified - shows all empty squares and captures)
-  void _calculateValidMoves(ChessPiece piece) {
-    validMoves.clear();
+  /// Get the chess piece widget for a given square
+  Widget? _getPieceWidget(String square, double size) {
+    final piece = _chess.get(square);
+    if (piece == null) return null;
+
+    final isWhite = piece.color == chess_lib.Color.WHITE;
     
-    // For now, allow moves to any square (full chess rules would be complex)
-    // In a real implementation, this would check piece-specific movement rules
-    for (int row = 0; row < 8; row++) {
-      for (int col = 0; col < 8; col++) {
-        // Skip the piece's current position
-        if (row == piece.row && col == piece.col) continue;
-        
-        final targetPiece = _getPieceAt(row, col);
-        // Allow moves to empty squares or capturing opponent pieces
-        if (targetPiece == null || targetPiece.isWhite != piece.isWhite) {
-          validMoves.add('$row,$col');
-        }
-      }
+    switch (piece.type) {
+      case chess_lib.PieceType.KING:
+        return isWhite ? WhiteKing(size: size) : BlackKing(size: size);
+      case chess_lib.PieceType.QUEEN:
+        return isWhite ? WhiteQueen(size: size) : BlackQueen(size: size);
+      case chess_lib.PieceType.ROOK:
+        return isWhite ? WhiteRook(size: size) : BlackRook(size: size);
+      case chess_lib.PieceType.BISHOP:
+        return isWhite ? WhiteBishop(size: size) : BlackBishop(size: size);
+      case chess_lib.PieceType.KNIGHT:
+        return isWhite ? WhiteKnight(size: size) : BlackKnight(size: size);
+      case chess_lib.PieceType.PAWN:
+        return isWhite ? WhitePawn(size: size) : BlackPawn(size: size);
+      default:
+        return null;
     }
-  }
-
-  /// Get piece at specific position
-  ChessPiece? _getPieceAt(int row, int col) {
-    for (final piece in pieces) {
-      if (piece.row == row && piece.col == col) {
-        return piece;
-      }
-    }
-    return null;
-  }
-
-  /// Move piece with animation
-  void _movePiece(ChessPiece piece, int toRow, int toCol) {
-    final fromRow = piece.row;
-    final fromCol = piece.col;
-
-    // Remove any piece at destination
-    pieces.removeWhere((p) => p.row == toRow && p.col == toCol);
-
-    // Setup animation
-    final squareSize = widget.size / 8;
-    final fromOffset = Offset(fromCol * squareSize, fromRow * squareSize);
-    final toOffset = Offset(toCol * squareSize, toRow * squareSize);
-
-    _moveAnimation = Tween<Offset>(
-      begin: fromOffset,
-      end: toOffset,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _animatingPiece = piece;
-
-    _animationController.forward(from: 0).then((_) {
-      setState(() {
-        // Update piece position
-        final index = pieces.indexOf(piece);
-        if (index != -1) {
-          pieces[index] = piece.copyWith(row: toRow, col: toCol);
-        }
-        selectedPiece = null;
-        validMoves.clear();
-        _animatingPiece = null;
-      });
-    });
   }
 
   @override
@@ -205,9 +325,9 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     final theme = Theme.of(context);
     final squareSize = widget.size / 8;
 
-    // Chess.com inspired board colors (using theme.colorScheme.secondary for light square)
-    final lightSquare = theme.colorScheme.secondary; // Typically #B58863 in Chess.com theme
-    final darkSquare = const Color(0xFF8B6F47); // Complementary dark brown
+    // Chess.com inspired board colors
+    final lightSquare = const Color(0xFFEEEED2); // Light squares
+    final darkSquare = const Color(0xFF769656);  // Dark squares
 
     return Container(
       width: widget.size,
@@ -225,11 +345,11 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
               children: List.generate(8, (row) {
                 return Row(
                   children: List.generate(8, (col) {
+                    final square = _positionToAlgebraic(row, col);
                     final isLightSquare = (row + col) % 2 == 0;
-                    final isSelected = selectedPiece != null &&
-                        selectedPiece!.row == row &&
-                        selectedPiece!.col == col;
-                    final isValidMove = validMoves.contains('$row,$col');
+                    final isSelected = _selectedSquare == square;
+                    final isValidMove = _validMoves.contains(square);
+                    final isAnimating = _animatingFromSquare == square;
 
                     return GestureDetector(
                       onTap: () => _onSquareTap(row, col),
@@ -241,45 +361,35 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                               ? theme.colorScheme.primary.withOpacity(0.5)
                               : (isLightSquare ? lightSquare : darkSquare),
                         ),
-                        child: isValidMove
-                            ? Center(
+                        child: Stack(
+                          children: [
+                            // Valid move indicator
+                            if (isValidMove)
+                              Center(
                                 child: Container(
                                   width: squareSize * 0.3,
                                   height: squareSize * 0.3,
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withOpacity(0.4),
+                                    color: Colors.black.withOpacity(0.2),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                              )
-                            : null,
+                              ),
+                            // Chess piece (if not animating)
+                            if (!isAnimating)
+                              Center(
+                                child: _getPieceWidget(square, squareSize * 0.85),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   }),
                 );
               }),
             ),
-            // Chess pieces
-            ...pieces.where((piece) => piece != _animatingPiece).map((piece) {
-              return Positioned(
-                left: piece.col * squareSize,
-                top: piece.row * squareSize,
-                child: Container(
-                  width: squareSize,
-                  height: squareSize,
-                  alignment: Alignment.center,
-                  child: Text(
-                    piece.symbol,
-                    style: TextStyle(
-                      fontSize: squareSize * 0.7,
-                      height: 1.0,
-                    ),
-                  ),
-                ),
-              );
-            }),
             // Animating piece
-            if (_animatingPiece != null && _moveAnimation != null)
+            if (_animatingFromSquare != null && _moveAnimation != null)
               AnimatedBuilder(
                 animation: _animationController,
                 builder: (context, child) {
@@ -291,13 +401,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                       width: squareSize,
                       height: squareSize,
                       alignment: Alignment.center,
-                      child: Text(
-                        _animatingPiece!.symbol,
-                        style: TextStyle(
-                          fontSize: squareSize * 0.7,
-                          height: 1.0,
-                        ),
-                      ),
+                      child: _getPieceWidget(_animatingFromSquare!, squareSize * 0.85),
                     ),
                   );
                 },
