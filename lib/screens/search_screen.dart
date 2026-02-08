@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/chess_trainer_api_service.dart';
-import 'games_list_screen.dart';
+import 'tabbed_analysis_screen.dart';
 
 /// Search screen for entering Chess.com username and initiating analysis
 class SearchScreen extends StatefulWidget {
@@ -42,11 +42,11 @@ class _SearchScreenState extends State<SearchScreen> {
       await _apiService.analyzeUser(username);
       
       if (mounted) {
-        // Navigate to Games List screen on success
+        // Navigate to Tabbed Analysis screen on success
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => GamesListScreen(username: username),
+            builder: (context) => TabbedAnalysisScreen(username: username),
           ),
         );
       }
@@ -73,10 +73,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chess Trainer'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -84,26 +85,25 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
-              Icons.psychology,
+            Icon(
+              Icons.analytics_outlined,
               size: 80,
-              color: Colors.deepPurple,
+              color: theme.colorScheme.primary,
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Analyze Your Chess Games',
-              style: TextStyle(
-                fontSize: 24,
+              style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Enter your Chess.com username to get started',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey,
+                color: Colors.grey[400],
               ),
               textAlign: TextAlign.center,
             ),
@@ -113,8 +113,7 @@ class _SearchScreenState extends State<SearchScreen> {
               decoration: InputDecoration(
                 labelText: 'Chess.com Username',
                 hintText: 'Enter username',
-                prefixIcon: const Icon(Icons.person),
-                border: const OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person, color: theme.colorScheme.primary),
                 errorText: _errorMessage,
               ),
               enabled: !_isLoading,
@@ -127,11 +126,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     )
                   : const Text(

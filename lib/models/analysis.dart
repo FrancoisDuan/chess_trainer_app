@@ -18,11 +18,6 @@ class Analysis {
   });
 
 factory Analysis.fromJson(Map<String, dynamic> json) {
-  print('DEBUG: Analysis JSON: $json');
-  print('DEBUG: game field type: ${json['game']?.runtimeType}');
-  print('DEBUG: game_metadata field type: ${json['game_metadata']?.runtimeType}');
-  print('DEBUG: analysis field type: ${json['analysis']?.runtimeType}');
-  
   try {
     // Try both 'game' and 'game_metadata' field names
     final gameData = json['game'] ?? json['game_metadata'];
@@ -52,8 +47,6 @@ factory Analysis.fromJson(Map<String, dynamic> json) {
       analyzedAt: DateTime.tryParse(analyzedAt ?? '') ?? DateTime.now(),
     );
   } catch (e) {
-    print('DEBUG: Error parsing analysis: $e');
-    print('DEBUG: Full JSON: $json');
     rethrow;
   }
 }
