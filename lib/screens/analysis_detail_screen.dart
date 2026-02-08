@@ -62,7 +62,6 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Game Analysis'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),
     );
@@ -183,42 +182,42 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
   }
 
   Widget _buildChessBoardPlaceholder() {
+    final theme = Theme.of(context);
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Container(
         height: 300,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.grid_on,
-                size: 60,
-                color: Colors.grey,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.grid_on,
+              size: 60,
+              color: Colors.grey[700],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Chess Board',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
               ),
-              SizedBox(height: 16),
-              Text(
-                'Chess Board',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Interactive board coming soon',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
               ),
-              SizedBox(height: 8),
-              Text(
-                'Interactive board coming soon',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -292,6 +291,8 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
   }
 
   Widget _buildMistakeCard(Mistake mistake) {
+    final theme = Theme.of(context);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -300,23 +301,23 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.red[100],
+                color: theme.colorScheme.error.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 'Move ${mistake.moveNumber}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.red[900],
+                  color: theme.colorScheme.error,
                 ),
               ),
             ),
             const Spacer(),
             Text(
               'Loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: theme.colorScheme.error,
               ),
             ),
           ],
@@ -326,14 +327,14 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
           'Your Move',
           mistake.playerMove,
           mistake.formatEvaluation(mistake.evaluationAfter),
-          Colors.red,
+          theme.colorScheme.error,
         ),
         const SizedBox(height: 8),
         _buildMoveComparison(
           'Best Move',
           mistake.bestMove,
           mistake.formatEvaluation(mistake.evaluationBefore),
-          Colors.green,
+          theme.colorScheme.primary,
         ),
       ],
     );
@@ -350,7 +351,7 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
       decoration: BoxDecoration(
         border: Border.all(color: color.withOpacity(0.3)),
         borderRadius: BorderRadius.circular(8),
-        color: color.withOpacity(0.05),
+        color: color.withOpacity(0.1),
       ),
       child: Row(
         children: [
@@ -360,7 +361,7 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[700],
+                color: Colors.grey[400],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -383,7 +384,7 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
             child: Text(
               evaluation,
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
