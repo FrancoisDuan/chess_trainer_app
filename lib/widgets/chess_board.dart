@@ -247,7 +247,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
           'promotion': promotion,
         });
         
-        if (moveResult == true) {
+        if (moveResult != false) {
           fromSquare = from;
           toSquare = to;
           matchedMove = _chess.undo_move(); // Undo to get the Move object
@@ -281,7 +281,11 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         await _animateMove(fromSquare, toSquare);
       }
     } catch (e) {
-      // Ignore errors in best move parsing - silently fail
+      // Log error in debug mode for troubleshooting
+      assert(() {
+        debugPrint('Error playing best move: $e');
+        return true;
+      }());
     } finally {
       if (mounted) {
         setState(() {

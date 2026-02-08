@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess/chess.dart' as chess_lib;
 import '../models/game.dart';
 import '../models/analysis.dart';
 import '../models/mistake.dart';
@@ -340,7 +341,10 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
               child: ChessBoard(
                 fenNotation: mistake.positionFenBefore,
                 size: boardSize,
-                bestMove: _convertToAlgebraicNotation(mistake.bestMove),
+                bestMove: _sanToCoordinateNotation(
+                  mistake.bestMove,
+                  mistake.positionFenBefore ?? '',
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -370,7 +374,8 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
 
   /// Convert standard algebraic notation (SAN) to coordinate notation
   /// e.g., "Nf3" or "e4" -> "g1f3" or "e2e4"
-  String? _convertToAlgebraicNotation(String san) {
+  /// Returns null if conversion fails
+  String? _sanToCoordinateNotation(String san, String fen) {
     if (san.isEmpty) return null;
     
     // Remove check/checkmate symbols
@@ -382,10 +387,30 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
       return san;
     }
     
-    // For SAN (e.g., "e4", "Nf3"), we'll let the chess library handle it
-    // by returning the SAN and letting the board parse it with full game state
-    // However, the chess library's move() function can't directly parse SAN without
-    // using the moves() function, so we'll return null and improve this later
+    // Try to convert SAN to coordinate notation using chess library
+    try {
+      // Create a temporary chess instance with the current position
+      final tempChess = chess_lib.Chess();
+      tempChess.load(fen);
+      
+      // Get all legal moves
+      final legalMoves = tempChess.generate_moves();
+      
+      // Find the move that matches the SAN
+      for (final move in legalMoves) {
+        final moveSan = tempChess.move_to_san(move);
+        final cleanSan = moveSan.replaceAll('+', '').replaceAll('#', '');
+        final cleanTargetSan = san.replaceAll('+', '').replaceAll('#', '');
+        
+        if (moveSan == san || cleanSan == cleanTargetSan) {
+          // Convert to coordinate notation
+          return '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion != null ? move.promotion!.name : ''}';
+        }
+      }
+    } catch (e) {
+      // Return null if conversion fails
+    }
+    
     return null;
   }
 
