@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/analysis.dart';
 import '../models/mistake.dart';
 import '../services/chess_trainer_api_service.dart';
+import '../utils/date_formatter.dart';
 
 /// Screen displaying detailed analysis of a single game
 class AnalysisDetailScreen extends StatefulWidget {
@@ -143,7 +144,7 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
             const SizedBox(height: 8),
             _buildMetadataRow('Time Control', game.timeControl, Icons.timer),
             const SizedBox(height: 8),
-            _buildMetadataRow('Date', _formatDate(game.date), Icons.calendar_today),
+            _buildMetadataRow('Date', DateFormatter.formatDate(game.date), Icons.calendar_today),
             const SizedBox(height: 8),
             _buildMetadataRow(
               'Total Mistakes',
@@ -391,9 +392,5 @@ class _AnalysisDetailScreenState extends State<AnalysisDetailScreen> {
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

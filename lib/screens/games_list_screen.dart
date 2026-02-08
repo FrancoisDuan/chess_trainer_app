@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/game.dart';
 import '../services/chess_trainer_api_service.dart';
+import '../utils/date_formatter.dart';
 import 'analysis_detail_screen.dart';
 
 /// Screen displaying list of analyzed games for a user
@@ -181,7 +182,7 @@ class _GamesListScreenState extends State<GamesListScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              _formatDate(game.date),
+              DateFormatter.formatDate(game.date),
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -218,9 +219,5 @@ class _GamesListScreenState extends State<GamesListScreen> {
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

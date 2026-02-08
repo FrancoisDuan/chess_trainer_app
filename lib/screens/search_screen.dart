@@ -51,17 +51,23 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       }
     } on ApiException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'An unexpected error occurred: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
