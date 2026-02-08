@@ -6,7 +6,8 @@ class Mistake {
   final double evaluationBefore;
   final double evaluationAfter;
   final double evaluationDifference;
-  final String? fen;
+  final String? positionFenBefore;
+  final String? positionFenAfter;
 
   Mistake({
     required this.moveNumber,
@@ -15,18 +16,20 @@ class Mistake {
     required this.evaluationBefore,
     required this.evaluationAfter,
     required this.evaluationDifference,
-    this.fen,
+    this.positionFenBefore,
+    this.positionFenAfter,
   });
 
   factory Mistake.fromJson(Map<String, dynamic> json) {
     return Mistake(
-      moveNumber: json['move_number'] as int,
-      playerMove: json['player_move'] as String,
-      bestMove: json['best_move'] as String,
-      evaluationBefore: (json['evaluation_before'] as num).toDouble(),
-      evaluationAfter: (json['evaluation_after'] as num).toDouble(),
-      evaluationDifference: (json['evaluation_difference'] as num).toDouble(),
-      fen: json['fen'] as String?,
+      moveNumber: json['move_number'] as int? ?? 0,
+      playerMove: json['player_move'] as String? ?? '',
+      bestMove: json['best_move'] as String? ?? '',
+      evaluationBefore: ((json['evaluation_before'] ?? 0) as num).toDouble(),
+      evaluationAfter: ((json['evaluation_after'] ?? 0) as num).toDouble(),
+      evaluationDifference: ((json['evaluation_diff'] ?? json['evaluation_difference'] ?? 0) as num).toDouble(),
+      positionFenBefore: json['position_fen_before'] as String?,
+      positionFenAfter: json['position_fen_after'] as String?,
     );
   }
 
@@ -37,8 +40,9 @@ class Mistake {
       'best_move': bestMove,
       'evaluation_before': evaluationBefore,
       'evaluation_after': evaluationAfter,
-      'evaluation_difference': evaluationDifference,
-      'fen': fen,
+      'evaluation_diff': evaluationDifference,
+      'position_fen_before': positionFenBefore,
+      'position_fen_after': positionFenAfter,
     };
   }
 

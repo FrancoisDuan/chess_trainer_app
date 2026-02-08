@@ -17,17 +17,46 @@ class Analysis {
     required this.analyzedAt,
   });
 
-  factory Analysis.fromJson(Map<String, dynamic> json) {
+factory Analysis.fromJson(Map<String, dynamic> json) {
+  print('DEBUG: Analysis JSON: $json');
+  print('DEBUG: game field type: ${json['game']?.runtimeType}');
+  print('DEBUG: game_metadata field type: ${json['game_metadata']?.runtimeType}');
+  print('DEBUG: analysis field type: ${json['analysis']?.runtimeType}');
+  
+  try {
+    // Try both 'game' and 'game_metadata' field names
+    final gameData = json['game'] ?? json['game_metadata'];
+    
+    if (gameData == null) {
+      throw Exception('No game data found in analysis response');
+    }
+    
+    // Handle both response formats:
+    // Format 1: mistakes at top level (json['mistakes'])
+    // Format 2: mistakes nested in analysis object (json['analysis']['mistakes'])
+    final analysisData = json['analysis'] as Map<String, dynamic>?;
+    final mistakesList = (json['mistakes'] as List<dynamic>?) ?? 
+                         (analysisData?['mistakes'] as List<dynamic>?) ?? [];
+    final totalMistakes = (json['total_mistakes'] as int?) ?? 
+                          (analysisData?['mistakes_count'] as int?) ?? 0;
+    final analyzedAt = (json['analyzed_at'] as String?) ?? 
+                       (analysisData?['analysis_date'] as String?);
+    
     return Analysis(
-      gameId: json['game_id'] as String,
-      game: Game.fromJson(json['game'] as Map<String, dynamic>),
-      mistakes: (json['mistakes'] as List<dynamic>)
+      gameId: json['game_id'] as String? ?? '',
+      game: Game.fromJson(gameData as Map<String, dynamic>),
+      mistakes: mistakesList
           .map((m) => Mistake.fromJson(m as Map<String, dynamic>))
           .toList(),
-      totalMistakes: json['total_mistakes'] as int? ?? 0,
-      analyzedAt: DateTime.parse(json['analyzed_at'] as String),
+      totalMistakes: totalMistakes,
+      analyzedAt: DateTime.tryParse(analyzedAt ?? '') ?? DateTime.now(),
     );
+  } catch (e) {
+    print('DEBUG: Error parsing analysis: $e');
+    print('DEBUG: Full JSON: $json');
+    rethrow;
   }
+}
 
   Map<String, dynamic> toJson() {
     return {

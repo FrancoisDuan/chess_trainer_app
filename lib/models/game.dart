@@ -18,17 +18,37 @@ class Game {
     this.pgn,
   });
 
-  factory Game.fromJson(Map<String, dynamic> json) {
+factory Game.fromJson(Map<String, dynamic> json) {
+  print('DEBUG: Parsing game JSON: $json');
+  
+  try {
+    final dateStr = json['date'] as String?;
+    DateTime parsedDate = DateTime.now();
+    
+    if (dateStr != null && dateStr.isNotEmpty) {
+      try {
+        final timestamp = int.parse(dateStr);
+        parsedDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      } catch (e) {
+        print('DEBUG: Failed to parse timestamp: $dateStr');
+      }
+    }
+
     return Game(
-      id: json['id'] as String,
-      whitePlayer: json['white_player'] as String,
-      blackPlayer: json['black_player'] as String,
-      result: json['result'] as String,
-      timeControl: json['time_control'] as String,
-      date: DateTime.parse(json['date'] as String),
+      id: (json['game_id'] ?? '') as String,
+      whitePlayer: (json['white_player'] ?? 'Unknown') as String,
+      blackPlayer: (json['black_player'] ?? 'Unknown') as String,
+      result: (json['result'] ?? 'unknown') as String,
+      timeControl: (json['time_control'] ?? '0').toString(), // Convert to string
+      date: parsedDate,
       pgn: json['pgn'] as String?,
     );
+  } catch (e) {
+    print('DEBUG: Error parsing game: $e');
+    print('DEBUG: JSON was: $json');
+    rethrow;
   }
+}
 
   Map<String, dynamic> toJson() {
     return {

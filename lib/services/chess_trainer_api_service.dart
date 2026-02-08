@@ -10,7 +10,7 @@ class ChessTrainerApiService {
   final http.Client client;
 
   ChessTrainerApiService({
-    this.baseUrl = 'http://localhost:8000',
+    this.baseUrl = 'http://10.0.2.2:8000',
     http.Client? client,
   }) : client = client ?? http.Client();
 
@@ -39,31 +39,42 @@ class ChessTrainerApiService {
     }
   }
 
-  /// Get list of analyzed games for a user
-  /// GET /api/user/{username}/games
-  Future<List<Game>> getUserGames(String username) async {
-    try {
-      final response = await client.get(
-        Uri.parse('$baseUrl/api/user/$username/games'),
-        headers: {'Content-Type': 'application/json'},
-      );
+/// Get list of analyzed games for a user
+/// GET /api/user/{username}/games
+Future<List<Game>> getUserGames(String username) async {
+  try {
+    final response = await client.get(
+      Uri.parse('$baseUrl/api/user/$username/games'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body) as List<dynamic>;
-        return jsonData
-            .map((game) => Game.fromJson(game as Map<String, dynamic>))
-            .toList();
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      
+      // Handle both formats: array or object with games field
+      List<dynamic> gamesList;
+      if (jsonData is List) {
+        gamesList = jsonData;
+      } else if (jsonData is Map && jsonData['games'] != null) {
+        gamesList = jsonData['games'] as List<dynamic>;
       } else {
-        throw ApiException(
-          'Failed to fetch games: ${response.statusCode}',
-          response.statusCode,
-        );
+        throw ApiException('Unexpected response format', response.statusCode);
       }
-    } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException('Network error: $e', 0);
+      
+      return gamesList
+          .map((game) => Game.fromJson(game as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException(
+        'Failed to fetch games: ${response.statusCode}',
+        response.statusCode,
+      );
     }
+  } catch (e) {
+    if (e is ApiException) rethrow;
+    throw ApiException('Network error: $e', 0);
   }
+}
 
   /// Get detailed analysis for a specific game
   /// GET /api/analysis/{game_id}
