@@ -4,6 +4,7 @@ import '../models/analysis.dart';
 import '../models/mistake.dart';
 import '../services/chess_trainer_api_service.dart';
 import '../utils/date_formatter.dart';
+import '../widgets/chess_board.dart';
 
 /// Screen with tabbed navigation showing Mistakes and Games List
 class TabbedAnalysisScreen extends StatefulWidget {
@@ -325,57 +326,32 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
 
   Widget _buildChessBoard(Mistake mistake) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Calculate board size (leave margin for padding)
+    final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Container(
-        height: 320,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.grid_on,
-              size: 80,
-              color: Colors.grey[700],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Chess Board',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+            // Interactive chess board
+            Center(
+              child: ChessBoard(
+                fenNotation: mistake.positionFenBefore,
+                size: boardSize,
               ),
             ),
             const SizedBox(height: 8),
+            // Move info
             Text(
               'Position at move ${mistake.moveNumber}',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.grey[500],
               ),
             ),
-            if (mistake.positionFenBefore != null) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'FEN: ${mistake.positionFenBefore}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    fontFamily: 'monospace',
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
           ],
         ),
       ),
