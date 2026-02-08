@@ -38,12 +38,12 @@ This document describes the implementation of the interactive chess board widget
 
 #### Piece Selection
 - Tap any piece to select it
-- Selected piece's square is highlighted with green overlay (50% opacity)
+- Selected piece's square is highlighted with primary color overlay (50% opacity)
 - Visual feedback is immediate and clear
 
 #### Valid Move Indicators
 - When a piece is selected, valid destination squares are shown with circular indicators
-- Green dots (40% opacity) indicate possible moves
+- Primary color dots (40% opacity) indicate possible moves
 - Simplified move calculation (allows moves to empty squares or opponent pieces)
 
 #### Piece Movement
@@ -136,8 +136,8 @@ Current implementation allows any move to:
 ## User Experience
 
 ### Visual Feedback
-1. **Piece Selection**: Green highlight on selected square
-2. **Valid Moves**: Semi-transparent green circles on possible destinations
+1. **Piece Selection**: Primary color highlight on selected square (50% opacity)
+2. **Valid Moves**: Semi-transparent primary color circles on possible destinations (40% opacity)
 3. **Movement**: Smooth animated transition
 4. **Capture**: Opponent piece disappears when captured
 

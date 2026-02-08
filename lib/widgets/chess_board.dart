@@ -198,11 +198,6 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         _animatingPiece = null;
       });
     });
-
-    setState(() {
-      selectedPiece = null;
-      validMoves.clear();
-    });
   }
 
   @override
@@ -210,8 +205,8 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     final theme = Theme.of(context);
     final squareSize = widget.size / 8;
 
-    // Chess.com inspired board colors
-    final lightSquare = theme.colorScheme.secondary; // #B58863
+    // Chess.com inspired board colors (using theme.colorScheme.secondary for light square)
+    final lightSquare = theme.colorScheme.secondary; // Typically #B58863 in Chess.com theme
     final darkSquare = const Color(0xFF8B6F47); // Complementary dark brown
 
     return Container(
