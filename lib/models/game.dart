@@ -19,8 +19,6 @@ class Game {
   });
 
 factory Game.fromJson(Map<String, dynamic> json) {
-  print('DEBUG: Parsing game JSON: $json');
-  
   try {
     final dateStr = json['date'] as String?;
     DateTime parsedDate = DateTime.now();
@@ -30,7 +28,7 @@ factory Game.fromJson(Map<String, dynamic> json) {
         final timestamp = int.parse(dateStr);
         parsedDate = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
       } catch (e) {
-        print('DEBUG: Failed to parse timestamp: $dateStr');
+        // Use default date if parsing fails
       }
     }
 
@@ -44,8 +42,6 @@ factory Game.fromJson(Map<String, dynamic> json) {
       pgn: json['pgn'] as String?,
     );
   } catch (e) {
-    print('DEBUG: Error parsing game: $e');
-    print('DEBUG: JSON was: $json');
     rethrow;
   }
 }
