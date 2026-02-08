@@ -54,6 +54,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   late AnimationController _animationController;
   Animation<Offset>? _moveAnimation;
   ChessPiece? _animatingPiece;
+  Set<String> validMoves = {}; // Store valid move positions as "row,col"
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     if (oldWidget.fenNotation != widget.fenNotation) {
       setState(() {
         selectedPiece = null;
+        validMoves.clear();
         _parseFEN(widget.fenNotation);
       });
     }
@@ -125,7 +127,28 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
       if (piece != null) {
         setState(() {
           selectedPiece = piece;
+          _calculateValidMoves(piece);
         });
+      }
+    }
+  }
+
+  /// Calculate valid moves for a piece (simplified - shows all empty squares and captures)
+  void _calculateValidMoves(ChessPiece piece) {
+    validMoves.clear();
+    
+    // For now, allow moves to any square (full chess rules would be complex)
+    // In a real implementation, this would check piece-specific movement rules
+    for (int row = 0; row < 8; row++) {
+      for (int col = 0; col < 8; col++) {
+        // Skip the piece's current position
+        if (row == piece.row && col == piece.col) continue;
+        
+        final targetPiece = _getPieceAt(row, col);
+        // Allow moves to empty squares or capturing opponent pieces
+        if (targetPiece == null || targetPiece.isWhite != piece.isWhite) {
+          validMoves.add('$row,$col');
+        }
       }
     }
   }
@@ -171,12 +194,14 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
           pieces[index] = piece.copyWith(row: toRow, col: toCol);
         }
         selectedPiece = null;
+        validMoves.clear();
         _animatingPiece = null;
       });
     });
 
     setState(() {
       selectedPiece = null;
+      validMoves.clear();
     });
   }
 
@@ -209,6 +234,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                     final isSelected = selectedPiece != null &&
                         selectedPiece!.row == row &&
                         selectedPiece!.col == col;
+                    final isValidMove = validMoves.contains('$row,$col');
 
                     return GestureDetector(
                       onTap: () => _onSquareTap(row, col),
@@ -220,6 +246,18 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                               ? theme.colorScheme.primary.withOpacity(0.5)
                               : (isLightSquare ? lightSquare : darkSquare),
                         ),
+                        child: isValidMove
+                            ? Center(
+                                child: Container(
+                                  width: squareSize * 0.3,
+                                  height: squareSize * 0.3,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withOpacity(0.4),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
                     );
                   }),

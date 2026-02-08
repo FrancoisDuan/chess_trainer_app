@@ -326,6 +326,9 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
 
   Widget _buildChessBoard(Mistake mistake) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Calculate board size (leave margin for padding)
+    final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -337,7 +340,7 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
             Center(
               child: ChessBoard(
                 fenNotation: mistake.positionFenBefore,
-                size: MediaQuery.of(context).size.width - 48, // Responsive sizing
+                size: boardSize,
               ),
             ),
             const SizedBox(height: 8),
