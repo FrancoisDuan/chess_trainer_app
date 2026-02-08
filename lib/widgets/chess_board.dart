@@ -27,7 +27,6 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   late AnimationController _animationController;
   Animation<Offset>? _moveAnimation;
   String? _animatingFromSquare;
-  String? _animatingToSquare;
   bool _isPlayingBestMove = false;
 
   @override
@@ -162,9 +161,9 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   /// Make a move and animate it
   void _makeMove(String from, String to) async {
     // Try to make the move
-    final move = _chess.move({'from': from, 'to': to, 'promotion': 'q'});
+    final moveResult = _chess.move({'from': from, 'to': to, 'promotion': 'q'});
     
-    if (move == null) {
+    if (moveResult == false) {
       // Invalid move
       setState(() {
         _selectedSquare = null;
@@ -199,7 +198,6 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
 
     setState(() {
       _animatingFromSquare = from;
-      _animatingToSquare = to;
       _moveAnimation = Tween<Offset>(
         begin: fromOffset,
         end: toOffset,
@@ -214,7 +212,6 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     if (mounted) {
       setState(() {
         _animatingFromSquare = null;
-        _animatingToSquare = null;
       });
     }
   }
@@ -247,10 +244,10 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         final moveResult = _chess.move({
           'from': from,
           'to': to,
-          if (promotion != null) 'promotion': promotion,
+          'promotion': promotion,
         });
         
-        if (moveResult != null && moveResult is bool && moveResult == true) {
+        if (moveResult == true) {
           fromSquare = from;
           toSquare = to;
           matchedMove = _chess.undo_move(); // Undo to get the Move object
@@ -284,8 +281,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         await _animateMove(fromSquare, toSquare);
       }
     } catch (e) {
-      // Ignore errors in best move parsing
-      print('Error playing best move: $e');
+      // Ignore errors in best move parsing - silently fail
     } finally {
       if (mounted) {
         setState(() {
@@ -333,7 +329,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
       width: widget.size,
       height: widget.size,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black.withOpacity(0.3), width: 2),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.3), width: 2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: ClipRRect(
@@ -358,7 +354,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                         height: squareSize,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? theme.colorScheme.primary.withOpacity(0.5)
+                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
                               : (isLightSquare ? lightSquare : darkSquare),
                         ),
                         child: Stack(
@@ -370,7 +366,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                                   width: squareSize * 0.3,
                                   height: squareSize * 0.3,
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black.withValues(alpha: 0.2),
                                     shape: BoxShape.circle,
                                   ),
                                 ),

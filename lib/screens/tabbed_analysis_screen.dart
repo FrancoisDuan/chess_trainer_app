@@ -325,7 +325,6 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
   }
 
   Widget _buildChessBoard(Mistake mistake) {
-    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     // Calculate board size (leave margin for padding)
     final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
