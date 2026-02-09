@@ -348,7 +348,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         // Avoid unnecessary setState calls by using a threshold
         if ((_currentSquareSize - squareSize).abs() > 0.1) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && (_currentSquareSize - squareSize).abs() > 0.1) {
+            if (mounted) {
               setState(() {
                 _currentSquareSize = squareSize;
               });
@@ -383,6 +383,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                             child: GestureDetector(
                               onTap: () => _onSquareTap(row, col),
                               child: Container(
+                                // Size is determined by Expanded parent widget
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? theme.colorScheme.primary.withValues(alpha: 0.5)
