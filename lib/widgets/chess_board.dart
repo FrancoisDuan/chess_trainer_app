@@ -323,92 +323,103 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final squareSize = widget.size / 8;
 
     // Chess.com inspired board colors
     final lightSquare = const Color(0xFFEEEED2); // Light squares
     final darkSquare = const Color(0xFF769656);  // Dark squares
 
-    return Container(
-      width: widget.size,
-      height: widget.size,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black.withValues(alpha: 0.3), width: 2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: Stack(
-          children: [
-            // Chess board squares
-            Column(
-              children: List.generate(8, (row) {
-                return Row(
-                  children: List.generate(8, (col) {
-                    final square = _positionToAlgebraic(row, col);
-                    final isLightSquare = (row + col) % 2 == 0;
-                    final isSelected = _selectedSquare == square;
-                    final isValidMove = _validMoves.contains(square);
-                    final isAnimating = _animatingFromSquare == square;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate actual square size from available constraints
+        final availableSize = constraints.maxWidth < constraints.maxHeight 
+            ? constraints.maxWidth 
+            : constraints.maxHeight;
+        final squareSize = availableSize / 8;
 
-                    return GestureDetector(
-                      onTap: () => _onSquareTap(row, col),
-                      child: Container(
-                        width: squareSize,
-                        height: squareSize,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                              : (isLightSquare ? lightSquare : darkSquare),
-                        ),
-                        child: Stack(
-                          children: [
-                            // Valid move indicator
-                            if (isValidMove)
-                              Center(
-                                child: Container(
-                                  width: squareSize * 0.3,
-                                  height: squareSize * 0.3,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.2),
-                                    shape: BoxShape.circle,
-                                  ),
+        return Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black.withValues(alpha: 0.3), width: 2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: Stack(
+              children: [
+                // Chess board squares
+                Column(
+                  children: List.generate(8, (row) {
+                    return Expanded(
+                      child: Row(
+                        children: List.generate(8, (col) {
+                          final square = _positionToAlgebraic(row, col);
+                          final isLightSquare = (row + col) % 2 == 0;
+                          final isSelected = _selectedSquare == square;
+                          final isValidMove = _validMoves.contains(square);
+                          final isAnimating = _animatingFromSquare == square;
+
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => _onSquareTap(row, col),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                                      : (isLightSquare ? lightSquare : darkSquare),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    // Valid move indicator
+                                    if (isValidMove)
+                                      Center(
+                                        child: Container(
+                                          width: squareSize * 0.3,
+                                          height: squareSize * 0.3,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                    // Chess piece (if not animating)
+                                    if (!isAnimating)
+                                      Center(
+                                        child: _getPieceWidget(square, squareSize * 0.85),
+                                      ),
+                                  ],
                                 ),
                               ),
-                            // Chess piece (if not animating)
-                            if (!isAnimating)
-                              Center(
-                                child: _getPieceWidget(square, squareSize * 0.85),
-                              ),
-                          ],
-                        ),
+                            ),
+                          );
+                        }),
                       ),
                     );
                   }),
-                );
-              }),
+                ),
+                // Animating piece
+                if (_animatingFromSquare != null && _moveAnimation != null)
+                  AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      final offset = _moveAnimation!.value;
+                      return Positioned(
+                        left: offset.dx,
+                        top: offset.dy,
+                        child: Container(
+                          width: squareSize,
+                          height: squareSize,
+                          alignment: Alignment.center,
+                          child: _getPieceWidget(_animatingFromSquare!, squareSize * 0.85),
+                        ),
+                      );
+                    },
+                  ),
+              ],
             ),
-            // Animating piece
-            if (_animatingFromSquare != null && _moveAnimation != null)
-              AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  final offset = _moveAnimation!.value;
-                  return Positioned(
-                    left: offset.dx,
-                    top: offset.dy,
-                    child: Container(
-                      width: squareSize,
-                      height: squareSize,
-                      alignment: Alignment.center,
-                      child: _getPieceWidget(_animatingFromSquare!, squareSize * 0.85),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
