@@ -220,6 +220,7 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     }
 
     final currentMistake = mistakes[_currentMistakeIndex];
+    final isCorrectMove = _isPlayerMoveBest(currentMistake);
 
     return SingleChildScrollView(
       child: Column(
@@ -228,13 +229,13 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
           _buildGameInfoHeader(),
           
           // Chess board placeholder
-          _buildChessBoard(currentMistake),
+          _buildChessBoard(currentMistake, isCorrectMove),
           
           // Mistake navigation
           _buildMistakeNavigation(),
           
           // Current mistake details
-          _buildMistakeDetails(currentMistake),
+          _buildMistakeDetails(currentMistake, isCorrectMove),
         ],
       ),
     );
@@ -325,7 +326,7 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     );
   }
 
-  Widget _buildChessBoard(Mistake mistake) {
+  Widget _buildChessBoard(Mistake mistake, bool isCorrectMove) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Calculate board size (leave margin for padding)
     final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
@@ -345,6 +346,7 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                   mistake.bestMove,
                   mistake.positionFenBefore ?? '',
                 ),
+                shouldAutoPlay: !isCorrectMove, // Only auto-play if wrong move
               ),
             ),
             const SizedBox(height: 8),
@@ -358,11 +360,14 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Tap a piece to see legal moves, then tap destination to move',
+              isCorrectMove
+                  ? 'You played the best move! ✓'
+                  : 'Tap a piece to see legal moves, then tap destination to move',
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
+                color: isCorrectMove ? Colors.green : Colors.grey[600],
+                fontStyle: isCorrectMove ? FontStyle.normal : FontStyle.italic,
+                fontWeight: isCorrectMove ? FontWeight.w600 : FontWeight.normal,
               ),
               textAlign: TextAlign.center,
             ),
@@ -454,8 +459,24 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     );
   }
 
-  Widget _buildMistakeDetails(Mistake mistake) {
+  /// Check if player's move matches the best move
+  /// Note: This assumes moves are in Standard Algebraic Notation (SAN).
+  /// The API provides consistent notation, so we only need to normalize
+  /// check (+) and checkmate (#) symbols for comparison.
+  bool _isPlayerMoveBest(Mistake mistake) {
+    // Normalize both moves for comparison (remove check/checkmate symbols)
+    final playerMove = mistake.playerMove.replaceAll('+', '').replaceAll('#', '').trim();
+    final bestMove = mistake.bestMove.replaceAll('+', '').replaceAll('#', '').trim();
+    
+    return playerMove == bestMove;
+  }
+
+  Widget _buildMistakeDetails(Mistake mistake, bool isCorrectMove) {
     final theme = Theme.of(context);
+    
+    // Use GREEN for correct moves, RED for incorrect moves
+    final playerMoveColor = isCorrectMove ? Colors.green : theme.colorScheme.error;
+    final bestMoveColor = isCorrectMove ? Colors.green : theme.colorScheme.primary;
     
     return Card(
       margin: const EdgeInsets.all(12),
@@ -469,26 +490,35 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.error.withOpacity(0.2),
+                    color: isCorrectMove 
+                        ? Colors.green.withOpacity(0.2)
+                        : theme.colorScheme.error.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    'Move ${mistake.moveNumber}',
+                    isCorrectMove ? 'Best move played! ✓' : 'Move ${mistake.moveNumber}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.error,
+                      color: isCorrectMove ? Colors.green : theme.colorScheme.error,
                     ),
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  'Loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: theme.colorScheme.error,
+                if (!isCorrectMove)
+                  Text(
+                    'Loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: theme.colorScheme.error,
+                    ),
+                    semanticsLabel: 'Evaluation loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)} points',
+                  )
+                else
+                  Semantics(
+                    label: 'No evaluation loss - best move played',
+                    child: const SizedBox.shrink(),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -496,14 +526,16 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
               'Your Move',
               mistake.playerMove,
               mistake.formatEvaluation(mistake.evaluationAfter),
-              theme.colorScheme.error,
+              playerMoveColor,
+              isCorrect: isCorrectMove,
             ),
             const SizedBox(height: 12),
             _buildMoveComparison(
               'Best Move',
               mistake.bestMove,
               mistake.formatEvaluation(mistake.evaluationBefore),
-              theme.colorScheme.primary,
+              bestMoveColor,
+              showLabel: !isCorrectMove,
             ),
           ],
         ),
@@ -515,8 +547,10 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     String label,
     String move,
     String evaluation,
-    Color color,
-  ) {
+    Color color, {
+    bool isCorrect = false,
+    bool showLabel = true,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -526,17 +560,27 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[400],
-                fontWeight: FontWeight.w600,
+          if (showLabel)
+            SizedBox(
+              width: 80,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
+          if (isCorrect)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 20,
+              ),
+            ),
           Expanded(
             child: Text(
               move,

@@ -8,12 +8,14 @@ class ChessBoard extends StatefulWidget {
   final String? fenNotation;
   final double size;
   final String? bestMove; // Best move in algebraic notation (e.g., "e2e4")
+  final bool shouldAutoPlay; // Whether to auto-play the best move after user's move
 
   const ChessBoard({
     super.key,
     this.fenNotation,
     this.size = 320,
     this.bestMove,
+    this.shouldAutoPlay = false,
   });
 
   @override
@@ -182,8 +184,8 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
       _validMoves.clear();
     });
 
-    // After user's move, play the best move if available
-    if (widget.bestMove != null && widget.bestMove!.isNotEmpty) {
+    // After user's move, play the best move if available and auto-play is enabled
+    if (widget.shouldAutoPlay && widget.bestMove != null && widget.bestMove!.isNotEmpty) {
       await Future.delayed(const Duration(milliseconds: 1500));
       _playBestMove();
     }
@@ -406,7 +408,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                                     // Chess piece (if not animating)
                                     if (!isAnimating)
                                       Center(
-                                        child: _getPieceWidget(square, squareSize * 0.85),
+                                        child: _getPieceWidget(square, squareSize * 0.95),
                                       ),
                                   ],
                                 ),
@@ -431,7 +433,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                           width: squareSize,
                           height: squareSize,
                           alignment: Alignment.center,
-                          child: _getPieceWidget(_animatingFromSquare!, squareSize * 0.85),
+                          child: _getPieceWidget(_animatingFromSquare!, squareSize * 0.95),
                         ),
                       );
                     },
