@@ -28,6 +28,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   Animation<Offset>? _moveAnimation;
   String? _animatingFromSquare;
   bool _isPlayingBestMove = false;
+  double _currentSquareSize = 40.0; // Track actual square size for animations
 
   @override
   void initState() {
@@ -192,7 +193,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
     final fromPos = _algebraicToPosition(from);
     final toPos = _algebraicToPosition(to);
     
-    final squareSize = widget.size / 8;
+    final squareSize = _currentSquareSize;
     final fromOffset = Offset(fromPos['col']! * squareSize, fromPos['row']! * squareSize);
     final toOffset = Offset(toPos['col']! * squareSize, toPos['row']! * squareSize);
 
@@ -330,15 +331,30 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate actual square size from available constraints
-        final availableSize = constraints.maxWidth < constraints.maxHeight 
-            ? constraints.maxWidth 
-            : constraints.maxHeight;
-        final squareSize = availableSize / 8;
+        // Calculate actual board size from available constraints
+        // Use the smaller of maxWidth or maxHeight to keep it square
+        final availableSize = constraints.maxWidth.isFinite && constraints.maxHeight.isFinite
+            ? (constraints.maxWidth < constraints.maxHeight 
+                ? constraints.maxWidth 
+                : constraints.maxHeight)
+            : widget.size;
+        
+        // Ensure board doesn't exceed widget.size parameter
+        final boardSize = availableSize < widget.size ? availableSize : widget.size;
+        final squareSize = boardSize / 8;
+        
+        // Update current square size for animations
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_currentSquareSize != squareSize) {
+            setState(() {
+              _currentSquareSize = squareSize;
+            });
+          }
+        });
 
         return Container(
-          width: widget.size,
-          height: widget.size,
+          width: boardSize,
+          height: boardSize,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.black.withValues(alpha: 0.3), width: 2),
             borderRadius: BorderRadius.circular(4),
