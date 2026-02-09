@@ -5,7 +5,7 @@
 ### 1. Improved Chess Piece Graphics (✓)
 - **File**: `lib/widgets/chess_board.dart`
 - **Change**: Increased piece size multiplier from `0.85` to `0.95`
-- **Lines**: 409, 434
+- **Lines**: 411, 436
 - **Effect**: Chess pieces now render at ~95% of square size instead of 85%, providing better visual clarity and professional appearance
 
 ### 2. Smart Auto-Replay with Visual Feedback (✓)

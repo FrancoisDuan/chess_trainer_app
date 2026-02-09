@@ -515,9 +515,9 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                     semanticsLabel: 'Evaluation loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)} points',
                   )
                 else
-                  Text(
-                    '',
-                    semanticsLabel: 'No evaluation loss - best move played',
+                  Semantics(
+                    label: 'No evaluation loss - best move played',
+                    child: const SizedBox.shrink(),
                   ),
               ],
             ),

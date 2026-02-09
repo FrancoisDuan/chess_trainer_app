@@ -408,7 +408,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
                                     // Chess piece (if not animating)
                                     if (!isAnimating)
                                       Center(
-                                        child: _getPieceWidget(square, squareSize * 0.85),
+                                        child: _getPieceWidget(square, squareSize * 0.95),
                                       ),
                                   ],
                                 ),
