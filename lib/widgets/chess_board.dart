@@ -28,7 +28,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
   Animation<Offset>? _moveAnimation;
   String? _animatingFromSquare;
   bool _isPlayingBestMove = false;
-  double _currentSquareSize = 40.0; // Track actual square size for animations
+  late double _currentSquareSize; // Track actual square size for animations
 
   @override
   void initState() {
@@ -37,6 +37,7 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    _currentSquareSize = widget.size / 8; // Initialize with default calculation
     _initializeBoard();
   }
 
@@ -343,14 +344,17 @@ class _ChessBoardState extends State<ChessBoard> with SingleTickerProviderStateM
         final boardSize = availableSize < widget.size ? availableSize : widget.size;
         final squareSize = boardSize / 8;
         
-        // Update current square size for animations
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_currentSquareSize != squareSize) {
-            setState(() {
-              _currentSquareSize = squareSize;
-            });
-          }
-        });
+        // Update current square size for animations only if it changed significantly
+        // Avoid unnecessary setState calls by using a threshold
+        if ((_currentSquareSize - squareSize).abs() > 0.1) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && (_currentSquareSize - squareSize).abs() > 0.1) {
+              setState(() {
+                _currentSquareSize = squareSize;
+              });
+            }
+          });
+        }
 
         return Container(
           width: boardSize,
