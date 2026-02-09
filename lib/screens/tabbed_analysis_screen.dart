@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess/chess.dart' as chess_lib;
 import '../models/game.dart';
 import '../models/analysis.dart';
 import '../models/mistake.dart';
@@ -325,7 +326,6 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
   }
 
   Widget _buildChessBoard(Mistake mistake) {
-    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     // Calculate board size (leave margin for padding)
     final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
@@ -336,11 +336,15 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // Interactive chess board
+            // Interactive chess board with best move support
             Center(
               child: ChessBoard(
                 fenNotation: mistake.positionFenBefore,
                 size: boardSize,
+                bestMove: _sanToCoordinateNotation(
+                  mistake.bestMove,
+                  mistake.positionFenBefore ?? '',
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -352,10 +356,62 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                 color: Colors.grey[500],
               ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              'Tap a piece to see legal moves, then tap destination to move',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Convert standard algebraic notation (SAN) to coordinate notation
+  /// e.g., "Nf3" or "e4" -> "g1f3" or "e2e4"
+  /// Returns null if conversion fails
+  String? _sanToCoordinateNotation(String san, String fen) {
+    if (san.isEmpty) return null;
+    
+    // Remove check/checkmate symbols
+    san = san.replaceAll('+', '').replaceAll('#', '');
+    
+    // If it's already in coordinate notation (e.g., "e2e4"), return as is
+    if (san.length >= 4 && 
+        RegExp(r'^[a-h][1-8][a-h][1-8][qrbn]?$').hasMatch(san)) {
+      return san;
+    }
+    
+    // Try to convert SAN to coordinate notation using chess library
+    try {
+      // Create a temporary chess instance with the current position
+      final tempChess = chess_lib.Chess();
+      tempChess.load(fen);
+      
+      // Get all legal moves
+      final legalMoves = tempChess.generate_moves();
+      
+      // Find the move that matches the SAN
+      for (final move in legalMoves) {
+        final moveSan = tempChess.move_to_san(move);
+        final cleanSan = moveSan.replaceAll('+', '').replaceAll('#', '');
+        final cleanTargetSan = san.replaceAll('+', '').replaceAll('#', '');
+        
+        if (moveSan == san || cleanSan == cleanTargetSan) {
+          // Convert to coordinate notation
+          return '${move.fromAlgebraic}${move.toAlgebraic}${move.promotion != null ? move.promotion!.name : ''}';
+        }
+      }
+    } catch (e) {
+      // Return null if conversion fails
+    }
+    
+    return null;
   }
 
   Widget _buildMistakeNavigation() {
