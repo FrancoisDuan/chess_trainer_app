@@ -220,6 +220,7 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     }
 
     final currentMistake = mistakes[_currentMistakeIndex];
+    final isCorrectMove = _isPlayerMoveBest(currentMistake);
 
     return SingleChildScrollView(
       child: Column(
@@ -228,13 +229,13 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
           _buildGameInfoHeader(),
           
           // Chess board placeholder
-          _buildChessBoard(currentMistake),
+          _buildChessBoard(currentMistake, isCorrectMove),
           
           // Mistake navigation
           _buildMistakeNavigation(),
           
           // Current mistake details
-          _buildMistakeDetails(currentMistake),
+          _buildMistakeDetails(currentMistake, isCorrectMove),
         ],
       ),
     );
@@ -325,13 +326,10 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     );
   }
 
-  Widget _buildChessBoard(Mistake mistake) {
+  Widget _buildChessBoard(Mistake mistake, bool isCorrectMove) {
     final screenWidth = MediaQuery.of(context).size.width;
     // Calculate board size (leave margin for padding)
     final boardSize = (screenWidth - 48).clamp(280.0, 400.0);
-    
-    // Check if this is a correct move (player played best move)
-    final isCorrectMove = _isPlayerMoveBest(mistake);
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -462,6 +460,9 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
   }
 
   /// Check if player's move matches the best move
+  /// Note: This assumes moves are in Standard Algebraic Notation (SAN).
+  /// The API provides consistent notation, so we only need to normalize
+  /// check (+) and checkmate (#) symbols for comparison.
   bool _isPlayerMoveBest(Mistake mistake) {
     // Normalize both moves for comparison (remove check/checkmate symbols)
     final playerMove = mistake.playerMove.replaceAll('+', '').replaceAll('#', '').trim();
@@ -470,9 +471,8 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
     return playerMove == bestMove;
   }
 
-  Widget _buildMistakeDetails(Mistake mistake) {
+  Widget _buildMistakeDetails(Mistake mistake, bool isCorrectMove) {
     final theme = Theme.of(context);
-    final isCorrectMove = _isPlayerMoveBest(mistake);
     
     // Use GREEN for correct moves, RED for incorrect moves
     final playerMoveColor = isCorrectMove ? Colors.green : theme.colorScheme.error;
@@ -512,6 +512,12 @@ class _TabbedAnalysisScreenState extends State<TabbedAnalysisScreen>
                       fontSize: 16,
                       color: theme.colorScheme.error,
                     ),
+                    semanticsLabel: 'Evaluation loss: ${mistake.evaluationDifference.abs().toStringAsFixed(1)} points',
+                  )
+                else
+                  Text(
+                    '',
+                    semanticsLabel: 'No evaluation loss - best move played',
                   ),
               ],
             ),
